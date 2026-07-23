@@ -23,7 +23,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install ansible
-          ansible-galaxy collection install -r ansible/requirements.yml
+          ansible-galaxy collection install -r ansible/requirements.yml -p ~/.ansible/collections --force
           pip install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
 
       - name: Log in to Azure
