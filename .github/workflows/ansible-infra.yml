@@ -24,7 +24,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install ansible
           ansible-galaxy collection install -r ansible/requirements.yml -p ~/.ansible/collections --force
-          pip install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
+          REQ_FILE=~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
+          if [ -f "$REQ_FILE" ]; then
+            echo "Installing from collection's bundled requirements file"
+            pip install -r "$REQ_FILE"
+          else
+            echo "Bundled requirements file not present in this collection version, installing SDK packages directly"
+            pip install azure-cli-core azure-identity azure-mgmt-resource azure-mgmt-web azure-mgmt-sql azure-mgmt-storage msrestazure requests
+          fi
 
       - name: Log in to Azure
         uses: azure/login@v2
