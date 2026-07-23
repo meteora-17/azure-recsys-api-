@@ -28,11 +28,6 @@
           --location {{ location }}
       changed_when: true
 
-    - name: Register the Microsoft.Sql resource provider
-      ansible.builtin.command:
-        cmd: az provider register --namespace Microsoft.Sql --wait
-      changed_when: true
-
     - name: Provision Azure SQL logical server
       ansible.builtin.command:
         cmd: >
