@@ -37,7 +37,7 @@ stages:
           - task: AzureCLI@2
             displayName: "Run Ansible playbook against Azure"
             inputs:
-              azureSubscription: "azure-recsys-connection"
+              azureSubscription: "first"
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
