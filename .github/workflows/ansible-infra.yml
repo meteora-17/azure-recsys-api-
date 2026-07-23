@@ -14,74 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Ansible and Azure collection
+      - name: Install Ansible
         run: |
           python -m pip install --upgrade pip
           pip install ansible
-          ansible-galaxy collection install -r ansible/requirements.yml -p ~/.ansible/collections --force
-          REQ_FILE=~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
-          if [ -f "$REQ_FILE" ]; then
-            echo "Installing from collection's bundled requirements file"
-            pip install -r "$REQ_FILE"
-          else
-            echo "Bundled requirements file not present in this collection version, installing SDK packages directly"
-            pip install \
-              azure-cli-core \
-              azure-identity \
-              azure-core \
-              msrest \
-              msrestazure \
-              requests \
-              azure-mgmt-authorization \
-              azure-mgmt-compute \
-              azure-mgmt-containerinstance \
-              azure-mgmt-containerregistry \
-              azure-mgmt-containerservice \
-              azure-mgmt-cosmosdb \
-              azure-mgmt-dns \
-              azure-mgmt-keyvault \
-              azure-mgmt-managementgroups \
-              azure-mgmt-marketplaceordering \
-              azure-mgmt-monitor \
-              azure-mgmt-msi \
-              azure-mgmt-network \
-              azure-mgmt-privatedns \
-              azure-mgmt-rdbms \
-              azure-mgmt-redis \
-              azure-mgmt-resource \
-              azure-mgmt-search \
-              azure-mgmt-servicebus \
-              azure-mgmt-sql \
-              azure-mgmt-storage \
-              azure-mgmt-subscription \
-              azure-mgmt-trafficmanager \
-              azure-mgmt-web \
-              azure-keyvault \
-              azure-storage-blob
-          fi
-
-      - name: Diagnose Azure SDK imports
-        run: |
-          python -c "
-          import importlib, traceback
-          mods = [
-              'azure.mgmt.resource', 'azure.mgmt.network', 'azure.mgmt.web',
-              'azure.mgmt.sql', 'azure.mgmt.storage', 'azure.mgmt.compute',
-              'msrestazure', 'msrest', 'azure.identity',
-          ]
-          for m in mods:
-              try:
-                  importlib.import_module(m)
-                  print(f'OK   {m}')
-              except Exception:
-                  print(f'FAIL {m}')
-                  traceback.print_exc()
-          "
 
       - name: Log in to Azure
         uses: azure/login@v2
@@ -95,11 +31,6 @@ jobs:
             }
 
       - name: Run Ansible playbook
-        env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          ansible-playbook ansible/site.yml -vvv \
+          ansible-playbook ansible/site.yml -v \
             --extra-vars "sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}"
