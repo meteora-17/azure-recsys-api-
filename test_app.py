@@ -12,7 +12,9 @@ def client():
 def test_health(client):
     resp = client.get("/health")
     assert resp.status_code == 200
-    assert resp.get_json() == {"status": "ok"}
+    data = resp.get_json()
+    assert data["status"] == "ok"
+    assert data["data_source"] == "in_memory"
 
 
 def test_list_products(client):

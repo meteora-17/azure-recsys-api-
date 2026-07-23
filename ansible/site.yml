@@ -1,0 +1,71 @@
+---
+# Infrastructure-as-code playbook for the Recommendation Scoring API.
+# Provisions Azure SQL Database (free serverless tier) and manages the
+# existing App Service, replacing the manual `az` CLI steps used initially.
+
+- name: Provision recommendation API infrastructure on Azure
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    resource_group: rg-recsys-demo
+    location: centralindia
+    sql_server_name: "{{ sql_server_name_override | default('recsys-sql-srv') }}"
+    sql_admin_user: recsysadmin
+    sql_admin_password: "{{ sql_admin_password }}"  # supplied via vault/pipeline secret, never committed
+    sql_database_name: recsysdb
+    app_service_plan: plan-recsys-demo
+    webapp_name: shreeya-recsys-api
+
+  tasks:
+    - name: Ensure resource group exists
+      azure.azcollection.azure_rm_resourcegroup:
+        name: "{{ resource_group }}"
+        location: "{{ location }}"
+
+    - name: Provision Azure SQL logical server
+      azure.azcollection.azure_rm_sqlserver:
+        resource_group: "{{ resource_group }}"
+        name: "{{ sql_server_name }}"
+        location: "{{ location }}"
+        admin_username: "{{ sql_admin_user }}"
+        admin_password: "{{ sql_admin_password }}"
+
+    - name: Allow Azure services to access the SQL server
+      azure.azcollection.azure_rm_sqlfirewallrule:
+        resource_group: "{{ resource_group }}"
+        server_name: "{{ sql_server_name }}"
+        name: AllowAzureServices
+        start_ip_address: 0.0.0.0
+        end_ip_address: 0.0.0.0
+
+    - name: Provision the database on the free serverless tier
+      azure.azcollection.azure_rm_sqldatabase:
+        resource_group: "{{ resource_group }}"
+        server_name: "{{ sql_server_name }}"
+        name: "{{ sql_database_name }}"
+        sku:
+          name: GP_S_Gen5_1
+          tier: GeneralPurpose
+        auto_pause_delay: 60
+        min_capacity: 0.5
+
+    - name: Ensure the App Service plan exists (free Linux tier)
+      azure.azcollection.azure_rm_appserviceplan:
+        resource_group: "{{ resource_group }}"
+        name: "{{ app_service_plan }}"
+        is_linux: true
+        sku: F1
+
+    - name: Ensure the web app exists and points at the right runtime
+      azure.azcollection.azure_rm_webapp:
+        resource_group: "{{ resource_group }}"
+        name: "{{ webapp_name }}"
+        plan: "{{ app_service_plan }}"
+        app_settings:
+          SCM_DO_BUILD_DURING_DEPLOYMENT: "true"
+          SQL_SERVER_NAME: "{{ sql_server_name }}"
+          SQL_DATABASE_NAME: "{{ sql_database_name }}"
+          SQL_ADMIN_USER: "{{ sql_admin_user }}"
+        container_settings: {}

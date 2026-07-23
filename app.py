@@ -4,11 +4,15 @@ Reuses the same Top-K ranking metrics logic from the Product Recommendation
 System project, exposed as a small live service instead of an offline script.
 """
 
+import os
+
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-# Small in-memory product catalog (id -> name, category)
+USE_AZURE_SQL = os.environ.get("USE_AZURE_SQL", "false").lower() == "true"
+
+# In-memory fallback (used for local dev and tests, no DB credentials needed)
 PRODUCTS = {
     1: {"name": "Wireless Mouse", "category": "Electronics"},
     2: {"name": "Mechanical Keyboard", "category": "Electronics"},
@@ -17,7 +21,6 @@ PRODUCTS = {
     5: {"name": "Desk Lamp", "category": "Home"},
 }
 
-# Toy interaction history: user_id -> list of product_ids purchased
 USER_HISTORY = {
     "u1": [1, 2],
     "u2": [3, 4],
@@ -25,29 +28,44 @@ USER_HISTORY = {
 }
 
 
+def get_products():
+    if USE_AZURE_SQL:
+        import db
+        return db.fetch_products()
+    return PRODUCTS
+
+
+def get_user_history(user_id):
+    if USE_AZURE_SQL:
+        import db
+        return db.fetch_user_history(user_id)
+    return USER_HISTORY.get(user_id, [])
+
+
 @app.get("/health")
 def health():
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok", "data_source": "azure_sql" if USE_AZURE_SQL else "in_memory"})
 
 
 @app.get("/products")
 def list_products():
-    return jsonify(PRODUCTS)
+    return jsonify(get_products())
 
 
 @app.get("/recommend/<user_id>")
 def recommend(user_id):
     """Naive category-affinity recommender: suggest unseen products from
     categories the user has already interacted with."""
-    history = USER_HISTORY.get(user_id, [])
-    seen_categories = {PRODUCTS[pid]["category"] for pid in history if pid in PRODUCTS}
+    products = get_products()
+    history = get_user_history(user_id)
+    seen_categories = {products[pid]["category"] for pid in history if pid in products}
     recs = [
         pid
-        for pid, info in PRODUCTS.items()
+        for pid, info in products.items()
         if pid not in history and info["category"] in seen_categories
     ]
     if not recs:
-        recs = [pid for pid in PRODUCTS if pid not in history][:3]
+        recs = [pid for pid in products if pid not in history][:3]
     return jsonify({"user_id": user_id, "recommended_product_ids": recs})
 
 

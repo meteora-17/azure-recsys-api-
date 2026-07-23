@@ -1,0 +1,50 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Test
+    jobs:
+      - job: RunTests
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "3.11"
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+              pip install pytest
+              pytest test_app.py -v
+            displayName: "Install deps and run pytest"
+
+  - stage: ProvisionInfra
+    dependsOn: Test
+    condition: succeeded()
+    jobs:
+      - job: RunAnsiblePlaybook
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "3.11"
+          - script: |
+              pip install ansible
+              ansible-galaxy collection install -r ansible/requirements.yml
+            displayName: "Install Ansible and azure.azcollection"
+          - task: AzureCLI@2
+            displayName: "Run Ansible playbook against Azure"
+            inputs:
+              azureSubscription: "azure-recsys-connection"
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                export AZURE_CLIENT_ID=$servicePrincipalId
+                export AZURE_SECRET=$servicePrincipalKey
+                export AZURE_TENANT=$tenantId
+                export AZURE_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+                ansible-playbook ansible/site.yml \
+                  --extra-vars "sql_admin_password=$(SQL_ADMIN_PASSWORD)"
+              addSpnToEnvironment: true
