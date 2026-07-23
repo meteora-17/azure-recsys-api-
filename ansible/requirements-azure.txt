@@ -1,0 +1,8 @@
+ansible>=8.0
+azure-cli-core>=2.60
+azure-identity>=1.15
+azure-mgmt-resource>=23.0
+azure-mgmt-web>=7.2
+azure-mgmt-sql>=4.0
+azure-mgmt-storage>=21.0
+msrestazure>=0.6
