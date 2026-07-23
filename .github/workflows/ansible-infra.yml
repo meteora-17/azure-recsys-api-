@@ -65,6 +65,24 @@ jobs:
               azure-storage-blob
           fi
 
+      - name: Diagnose Azure SDK imports
+        run: |
+          python -c "
+          import importlib, traceback
+          mods = [
+              'azure.mgmt.resource', 'azure.mgmt.network', 'azure.mgmt.web',
+              'azure.mgmt.sql', 'azure.mgmt.storage', 'azure.mgmt.compute',
+              'msrestazure', 'msrest', 'azure.identity',
+          ]
+          for m in mods:
+              try:
+                  importlib.import_module(m)
+                  print(f'OK   {m}')
+              except Exception:
+                  print(f'FAIL {m}')
+                  traceback.print_exc()
+          "
+
       - name: Log in to Azure
         uses: azure/login@v2
         with:
@@ -83,5 +101,5 @@ jobs:
           AZURE_TENANT: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          ansible-playbook ansible/site.yml \
+          ansible-playbook ansible/site.yml -vvv \
             --extra-vars "sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}"
