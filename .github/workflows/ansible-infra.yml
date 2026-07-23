@@ -30,7 +30,39 @@ jobs:
             pip install -r "$REQ_FILE"
           else
             echo "Bundled requirements file not present in this collection version, installing SDK packages directly"
-            pip install azure-cli-core azure-identity azure-mgmt-resource azure-mgmt-web azure-mgmt-sql azure-mgmt-storage msrestazure requests
+            pip install \
+              azure-cli-core \
+              azure-identity \
+              azure-core \
+              msrest \
+              msrestazure \
+              requests \
+              azure-mgmt-authorization \
+              azure-mgmt-compute \
+              azure-mgmt-containerinstance \
+              azure-mgmt-containerregistry \
+              azure-mgmt-containerservice \
+              azure-mgmt-cosmosdb \
+              azure-mgmt-dns \
+              azure-mgmt-keyvault \
+              azure-mgmt-managementgroups \
+              azure-mgmt-marketplaceordering \
+              azure-mgmt-monitor \
+              azure-mgmt-msi \
+              azure-mgmt-network \
+              azure-mgmt-privatedns \
+              azure-mgmt-rdbms \
+              azure-mgmt-redis \
+              azure-mgmt-resource \
+              azure-mgmt-search \
+              azure-mgmt-servicebus \
+              azure-mgmt-sql \
+              azure-mgmt-storage \
+              azure-mgmt-subscription \
+              azure-mgmt-trafficmanager \
+              azure-mgmt-web \
+              azure-keyvault \
+              azure-storage-blob
           fi
 
       - name: Log in to Azure
